@@ -21,7 +21,7 @@
 	  <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
 	  <PackageReference Include="Tekla.Structures.Model" Version="2021.0.0" />
 	<PackageReference Include="CommandLineParser" Version="2.9.1" />
-	  <PackageReference Include="System.Text.Json" Version="8.0.4" />
+	  <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 
 	<ItemGroup>
