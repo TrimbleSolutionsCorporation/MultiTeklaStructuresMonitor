@@ -9,6 +9,7 @@
 <h1>Tekla Open Models Information</h1>
 
 <button class="btn btn-primary" @onclick="GetOpenModels">Get All Models</button>
+<button class="btn btn-primary" @onclick="RestartDrivers">Restart Drivers</button>
 
 <table class="table">
     <thead>
@@ -33,5 +34,11 @@
     {
         currentOpenModels.Clear();
         currentOpenModels.AddRange(SingletonService.GetAllOpenModels());
+    }
+
+    private void RestartDrivers()
+    {        
+        currentOpenModels.Clear();
+        currentOpenModels.AddRange(SingletonService.RestartDrivers());
     }
 }

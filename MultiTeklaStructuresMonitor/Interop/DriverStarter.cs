@@ -28,7 +28,10 @@
 
             // deploy TeklaGrpcApiService.exe into version folder if not exists
             // this is stricly not needed if patching the app config and then starting the exe.  Ive not tested it tought
-            DeployDriverToVersionSpecifFolders(dirData, logger, deploymentPath, driverDeploymentExePath);
+            if (!DeployDriverToVersionSpecifFolders(dirData, logger, deploymentPath, driverDeploymentExePath))
+            {
+                return null;
+            }
 
             // finally start the server process
             // get a free port
@@ -49,17 +52,61 @@
             return GetClientApp(dirData, pid, portNumber);
         }
 
-        private static void DeployDriverToVersionSpecifFolders(InstallDirData dirData, ILogger logger, string deploymentPath, string driverDeploymentExePath)
+        private static bool DeployDriverToVersionSpecifFolders(InstallDirData dirData, ILogger logger, string deploymentPath, string driverDeploymentExePath)
         {
+            // patch the app config for the GRPC server
+            var binDir = Path.Combine(dirData.MainDir, dirData.TSVersionDir, "bin");
+            var version = Version.Parse(dirData.ProductVersion);
+
+            if (!File.Exists(Path.Combine(binDir, "TeklaStructures.exe.config")))
+            {
+                return false;
+            }
+
             if (!File.Exists(driverDeploymentExePath))
             {
-                Directory.CreateDirectory(deploymentPath);
+                try
+                {
 
-                DropBasePackageToFolder(BasePath, deploymentPath);
 
-                // patch the app config for the GRPC server
-                var binDir = Path.Combine(dirData.MainDir, dirData.TSVersionDir, "bin");
-                var version = Version.Parse(dirData.ProductVersion);
+                    Directory.CreateDirectory(deploymentPath);
+
+                    DropBasePackageToFolder(BasePath, deploymentPath);
+
+                    if (version.Major < 224)
+                    {
+                        logger.LogInformation($"Before 2024, We will patch app config files without code base elements");
+                        TsPatchHelpers.PatchExeFileUsingBinFolderUsingGac(driverDeploymentExePath, binDir);
+                    }
+                    else
+                    {
+                        logger.LogInformation($"After 2024, We will patch app config files with code base elements");
+                        TsPatchHelpers.PatchExeFileUsingBinFolder(driverDeploymentExePath, binDir);
+                    }
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogCritical($"Wasnt able to register driver: {ex.Message}");
+                    return false;
+                }
+            }
+            else
+            {
+                logger.LogInformation($"Driver already deployed to {driverDeploymentExePath}");
+
+                // redo the app configs always at start
+                // this is needed to make sure the app config is always correct
+                // and not corrupted by the user
+                if (File.Exists($"{driverDeploymentExePath}.config"))
+                {
+                    File.Delete($"{driverDeploymentExePath}.config");                    
+                }
+
+                File.Copy(Path.Combine(BasePath, $"{ServiceExe}.config"), $"{driverDeploymentExePath}.config", true);
+
+                // redo app config
                 if (version.Major < 224)
                 {
                     logger.LogInformation($"Before 2024, We will patch app config files without code base elements");
@@ -71,6 +118,8 @@
                     TsPatchHelpers.PatchExeFileUsingBinFolder(driverDeploymentExePath, binDir);
                 }
             }
+
+            return true;
         }
 
         private static GrpcServiceClient? GetClientApp(InstallDirData dirData, int pidOfRunningProcess, int port)

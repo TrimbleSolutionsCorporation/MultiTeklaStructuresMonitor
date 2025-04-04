@@ -8,10 +8,11 @@
     {
         private static readonly string CurrentRunningPath = Directory.GetParent(typeof(DriverStarter).Assembly.Location)!.FullName;
         private static readonly List<GrpcServiceClient> clients = new List<GrpcServiceClient>();
+        private readonly ILogger logger;
 
-        private  GrpcServiceSink()
+        private  GrpcServiceSink(ILogger logger)
         {
-
+            this.logger = logger;
         }
 
         public static GrpcServiceSink CreateInstance(ILogger logger)
@@ -30,7 +31,7 @@
                 }
             }
 
-            return new GrpcServiceSink();
+            return new GrpcServiceSink(logger);
         }
 
         public List<string> GetAllOpenModels()
@@ -43,6 +44,42 @@
             }
 
             return openModels;
+        }
+
+        public List<string> RestartDrivers()
+        {
+            var replyMessages = new List<string>();
+            foreach (var client in clients)
+            {
+
+                try
+                {
+                    var openModelReply = client.StopService();
+                    replyMessages.Add($"Client: {client.InstallData.TSVersionDir} : {client.InstallData.ProductVersion} : Status: {openModelReply}");
+
+                }
+                catch (Exception)
+                {
+
+                }            
+            }
+
+            // clear the list of clients
+            clients.Clear();
+
+            // register all clients again
+            var installDirData = RegistryHelpers.ReadInstalledApplications(this.logger);
+
+            foreach (var installDir in installDirData)
+            {
+                var client = DriverStarter.StartDriverAndServer(installDir, this.logger);
+                if (client != null)
+                {
+                    clients.Add(client);
+                }
+            }
+
+            return GetAllOpenModels();
         }
     }
 }
