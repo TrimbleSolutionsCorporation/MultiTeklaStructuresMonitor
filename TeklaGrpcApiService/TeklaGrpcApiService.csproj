@@ -7,7 +7,7 @@
 		<OutputType>Exe</OutputType>
 		<LangVersion>latest</LangVersion>
 		<OutputPath>..\BuildDrop\TeklaGrpcApiService</OutputPath>
-		<TeklaVersion Condition="'$(Configuration)' == 'Debug'">2024.0 Daily</TeklaVersion>
+		<TeklaVersion Condition="'$(Configuration)' == 'Debug'">2026.0 Daily</TeklaVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
